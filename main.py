@@ -1,7 +1,3 @@
-"""
-Game pesawat dikontrol posisi vertikal sarung tangan (segmentasi warna HSV).
-Commit 4: Smoothing EMA + mapping koordinat ke layar game.
-"""
 import cv2
 import numpy as np
 
