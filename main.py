@@ -8,17 +8,16 @@ def nothing(_):
 
 def setup_trackbars():
     cv2.namedWindow("Callibration")
-    # nilai awal umum untuk kulit di YCrCb
-    for name, val in [("Y min", 0), ("Y max", 255),
-                      ("Cr min", 133), ("Cr max", 173),
-                      ("Cb min", 77), ("Cb max", 127)]:
+    for name, val in [("H min", 75), ("H max", 105),
+                      ("S min", 120), ("S max", 255),
+                      ("V min", 70), ("V max", 255)]:
         cv2.createTrackbar(name, "Callibration", val, 255, nothing)
     cv2.resizeWindow("Callibration", 400, 250)
 
 def get_range():
     g = lambda n: cv2.getTrackbarPos(n, "Callibration")
-    lower = np.array([g("Y min"), g("Cr min"), g("Cb min")], np.uint8)
-    upper = np.array([g("Y max"), g("Cr max"), g("Cb max")], np.uint8)
+    lower = np.array([g("H min"), g("S min"), g("V min")], np.uint8)
+    upper = np.array([g("H max"), g("S max"), g("V max")], np.uint8)
     return lower, upper
 
 def main():
@@ -37,10 +36,10 @@ def main():
         frame = cv2.flip(cv2.resize(frame, (CAM_W, CAM_H)), 1)
         
         lower, upper = get_range()
-        ycrcb = cv2.cvtColor(frame, cv2.COLOR_BGR2YCrCb)
-        mask = cv2.inRange(ycrcb, lower, upper)
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        hsv[:, :, 0] = ((hsv[:, :, 0].astype(np.int16) + 90) % 180).astype(np.uint8)
+        mask = cv2.inRange(hsv, lower, upper)
         
-        # Tampilkan side-by-side
         mask_bgr = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
         combined = np.hstack([frame, mask_bgr])
         cv2.imshow("Debug", combined)
