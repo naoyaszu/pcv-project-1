@@ -1,18 +1,65 @@
 import cv2
 import numpy as np
+import os
 
 CAM_W, CAM_H = 320, 240
 ROI_X = 0
-MIN_AREA = 800
-KERNEL_OPEN = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-KERNEL_CLOSE = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
 GAME_W, GAME_H = 640, 480
+SHIP_X, SHIP_W, SHIP_H = 80, 100, 60
 ALPHA = 0.4
 MAX_STEP = 40
+MIN_AREA = 800
 Y_RANGE = (30, 210)
+MAX_LIVES = 5
+HEART_SIZE = 32
+KERNEL_OPEN = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+KERNEL_CLOSE = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def load_sprite(filename, size=None):
+    path = os.path.join(BASE_DIR, filename)
+    img = cv2.imread(path, cv2.IMREAD_UNCHANGED)   # baca termasuk alpha
+    if img is None:
+        raise FileNotFoundError(f"Image not found: {path}")
+    if img.ndim == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGRA)
+    elif img.shape[2] == 3:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
+    if size is not None:
+        img = cv2.resize(img, size, interpolation=cv2.INTER_AREA)
+    return img
+
+
+def overlay(bg, sprite, x, y):
+    h, w = sprite.shape[:2]
+    x0, y0 = max(x, 0), max(y, 0)
+    x1, y1 = min(x + w, bg.shape[1]), min(y + h, bg.shape[0])
+    if x0 >= x1 or y0 >= y1:
+        return
+    s = sprite[y0 - y:y1 - y, x0 - x:x1 - x]
+    alpha = s[:, :, 3:4] / 255.0
+    roi = bg[y0:y1, x0:x1]
+    roi[:] = (alpha * s[:, :, :3] + (1 - alpha) * roi).astype(np.uint8)
+
+
+SHIP_IMG = load_sprite("assets/ship.png", (SHIP_W, SHIP_H))
+GOOD_IMG = load_sprite("assets/obstacle1.png")   # ditabrak: +poin
+BAD_IMG = load_sprite("assets/obstacle2.png")    # ditabrak: -nyawa
+HEART_FULL = load_sprite("assets/heart.png", (HEART_SIZE, HEART_SIZE))
+HEART_EMPTY = load_sprite("assets/heart_empty.png", (HEART_SIZE, HEART_SIZE))
+
+BG_IMG = cv2.imread(os.path.join(BASE_DIR, "assets/background.png"))
+BG_IMG = cv2.resize(BG_IMG, (GAME_W, GAME_H), interpolation=cv2.INTER_AREA)
+BG_IMG = (BG_IMG * 0.6).astype(np.uint8)   # 60% terang, biar sprite tetap jelas
+
+BONUS_POINTS = 50
+
 
 def nothing(_):
     pass
+
 
 def setup_trackbars():
     cv2.namedWindow("Callibration")
@@ -22,14 +69,15 @@ def setup_trackbars():
         cv2.createTrackbar(name, "Callibration", val, 255, nothing)
     cv2.resizeWindow("Callibration", 400, 250)
 
+
 def get_range():
     g = lambda n: cv2.getTrackbarPos(n, "Callibration")
     lower = np.array([g("H min"), g("S min"), g("V min")], np.uint8)
     upper = np.array([g("H max"), g("S max"), g("V max")], np.uint8)
     return lower, upper
 
+
 def track_hand(frame, lower, upper):
-    """Return (cy atau None, mask_roi, contour atau None)."""
     roi = frame[:, ROI_X:]
     blur = cv2.GaussianBlur(roi, (7, 7), 0)
     hsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
@@ -38,72 +86,80 @@ def track_hand(frame, lower, upper):
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, KERNEL_OPEN)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, KERNEL_CLOSE, iterations=2)
     mask = cv2.medianBlur(mask, 5)
-    
+
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         return None, mask, None
-    
     c = max(cnts, key=cv2.contourArea)
     if cv2.contourArea(c) < MIN_AREA:
         return None, mask, None
-    
     c = cv2.convexHull(c)
     M = cv2.moments(c)
     if M["m00"] == 0:
         return None, mask, None
-    
     cy = M["m01"] / M["m00"]
     return cy, mask, c
+
 
 def main():
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         print("Camera cannot be opened")
         return
-    
+
     setup_trackbars()
     smooth_y = None
-    
+    ship_y = GAME_H / 2
+
     while True:
         ok, frame = cap.read()
         if not ok:
             break
-        
         frame = cv2.flip(cv2.resize(frame, (CAM_W, CAM_H)), 1)
-        
+
         lower, upper = get_range()
         cy, mask_roi, cnt = track_hand(frame, lower, upper)
-        
+
+        target = None
         if cy is not None and np.isfinite(cy):
             if smooth_y is None:
                 smooth_y = cy
             elif abs(cy - smooth_y) > 2:
                 smooth_y = ALPHA * cy + (1 - ALPHA) * smooth_y
-        
-        target = float(np.interp(smooth_y, Y_RANGE, [0, GAME_H]))
-        print(f"Target Y: {target:.1f}")
-        
+        if smooth_y is not None:
+            target = float(np.interp(smooth_y, Y_RANGE, [0, GAME_H]))
+
+        if target is not None:
+            diff = target - ship_y
+            ship_y += float(np.clip(diff * 0.5, -MAX_STEP, MAX_STEP))
+        ship_y = float(np.clip(ship_y, SHIP_H / 2, GAME_H - SHIP_H / 2))
+
+        # test sprite di canvas, background masih polos
+        img = np.full((GAME_H, GAME_W, 3), 25, np.uint8)
+        overlay(img, SHIP_IMG, SHIP_X - SHIP_W // 2, int(ship_y) - SHIP_H // 2)
+
+        # Tampilkan kamera + game preview side-by-side
         view = frame.copy()
         cv2.rectangle(view, (ROI_X, 0), (CAM_W - 1, CAM_H - 1), (0, 255, 0), 1)
-        
         if cnt is not None:
             cnt_full = cnt + np.array([[[ROI_X, 0]]])
             cv2.drawContours(view, [cnt_full], -1, (0, 0, 255), 2)
-            cx = int(cv2.moments(cnt)["m10"] / cv2.moments(cnt)["m00"])
-            cv2.circle(view, (ROI_X + cx, int(cy)), 5, (255, 0, 0), -1)
-        
+            cv2.circle(view, (ROI_X + int(cv2.moments(cnt)["m10"] / cv2.moments(cnt)["m00"]),
+                              int(cy)), 5, (255, 0, 0), -1)
+
         full_mask = np.zeros((CAM_H, CAM_W), np.uint8)
         full_mask[:, ROI_X:] = mask_roi
-        
-        mask_bgr = cv2.cvtColor(full_mask, cv2.COLOR_GRAY2BGR)
-        combined = np.hstack([view, mask_bgr])
-        cv2.imshow("Debug", combined)
-        
+        side = np.vstack([view, cv2.cvtColor(full_mask, cv2.COLOR_GRAY2BGR)])
+        side = cv2.resize(side, (320, GAME_H))
+
+        cv2.imshow("Preview", np.hstack([img, side]))
+
         if cv2.waitKey(1) & 0xFF == 27:
             break
-    
+
     cap.release()
     cv2.destroyAllWindows()
+
 
 if __name__ == "__main__":
     main()
