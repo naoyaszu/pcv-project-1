@@ -1,3 +1,7 @@
+"""
+Game pesawat dikontrol posisi vertikal sarung tangan (segmentasi warna HSV).
+Commit 4: Smoothing EMA + mapping koordinat ke layar game.
+"""
 import cv2
 import numpy as np
 
@@ -6,6 +10,10 @@ ROI_X = 0
 MIN_AREA = 800
 KERNEL_OPEN = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
 KERNEL_CLOSE = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+GAME_W, GAME_H = 640, 480
+ALPHA = 0.4
+MAX_STEP = 40
+Y_RANGE = (30, 210)
 
 def nothing(_):
     pass
@@ -25,6 +33,7 @@ def get_range():
     return lower, upper
 
 def track_hand(frame, lower, upper):
+    """Return (cy atau None, mask_roi, contour atau None)."""
     roi = frame[:, ROI_X:]
     blur = cv2.GaussianBlur(roi, (7, 7), 0)
     hsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
@@ -57,6 +66,7 @@ def main():
         return
     
     setup_trackbars()
+    smooth_y = None
     
     while True:
         ok, frame = cap.read()
@@ -67,6 +77,15 @@ def main():
         
         lower, upper = get_range()
         cy, mask_roi, cnt = track_hand(frame, lower, upper)
+        
+        if cy is not None and np.isfinite(cy):
+            if smooth_y is None:
+                smooth_y = cy
+            elif abs(cy - smooth_y) > 2:
+                smooth_y = ALPHA * cy + (1 - ALPHA) * smooth_y
+        
+        target = float(np.interp(smooth_y, Y_RANGE, [0, GAME_H]))
+        print(f"Target Y: {target:.1f}")
         
         view = frame.copy()
         cv2.rectangle(view, (ROI_X, 0), (CAM_W - 1, CAM_H - 1), (0, 255, 0), 1)
