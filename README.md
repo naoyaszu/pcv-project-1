@@ -101,3 +101,11 @@ python main.py
 ---
 
 ### Dokumentasi Game
+1. Tampilan Awal
+![awal](images/awal.png)
+
+2. Gameplay
+![game](images/game.png)
+
+3. Game Over
+![gameover](images/game-over.png)
