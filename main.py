@@ -70,23 +70,9 @@ BG_IMG = (BG_IMG * 0.6).astype(np.uint8)
 
 BONUS_POINTS = 50
 
-
-def nothing(_):
-    pass
-
-def setup_trackbars():
-    cv2.namedWindow("Callibration")
-    for name, val in [("H min", 75), ("H max", 105),
-                      ("S min", 120), ("S max", 255),
-                      ("V min", 70), ("V max", 255)]:
-        cv2.createTrackbar(name, "Callibration", val, 255, nothing)
-    cv2.resizeWindow("Callibration", 400, 250)
-
-def get_range():
-    g = lambda n: cv2.getTrackbarPos(n, "Callibration")
-    lower = np.array([g("H min"), g("S min"), g("V min")], np.uint8)
-    upper = np.array([g("H max"), g("S max"), g("V max")], np.uint8)
-    return lower, upper
+#hsv
+LOWER_HSV = np.array([75, 120, 70], np.uint8)
+UPPER_HSV = np.array([105, 255, 255], np.uint8)
 
 def track_hand(frame, lower, upper):
     roi = frame[:, ROI_X:]
@@ -211,7 +197,6 @@ def main():
         print("Camera cannot be opened")
         return
     
-    setup_trackbars()
     game = Game()
     smooth_y = None
 
@@ -221,7 +206,7 @@ def main():
             break
         frame = cv2.flip(cv2.resize(frame, (CAM_W, CAM_H)), 1)
 
-        lower, upper = get_range()
+        lower, upper = LOWER_HSV, UPPER_HSV
         cy, mask_roi, cnt = track_hand(frame, lower, upper)
 
         target = None
