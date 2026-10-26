@@ -29,6 +29,7 @@ FONT_BIG = ImageFont.truetype(os.path.join(BASE_DIR, "assets/vcr_osd_mono.ttf"),
 FONT_MID = ImageFont.truetype(os.path.join(BASE_DIR, "assets/vcr_osd_mono.ttf"), 26)
 FONT_SMALL = ImageFont.truetype(os.path.join(BASE_DIR, "assets/vcr_osd_mono.ttf"), 22)
 
+#render text custom 
 def draw_text(img, text, xy, font, color=(255, 255, 255), anchor="la"):
     pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
     ImageDraw.Draw(pil).text(xy, text, font=font,
@@ -48,6 +49,7 @@ def load_sprite(filename, size=None):
         img = cv2.resize(img, size, interpolation=cv2.INTER_AREA)
     return img
 
+#alpha blending biar hasil gambar transparan 
 def overlay(bg, sprite, x, y):
     h, w = sprite.shape[:2]
     x0, y0 = max(x, 0), max(y, 0)
@@ -75,13 +77,13 @@ UPPER_HSV = np.array([105, 255, 255], np.uint8)
 
 def track_hand(frame, lower, upper):
     roi = frame[:, ROI_X:]
-    blur = cv2.GaussianBlur(roi, (7, 7), 0)
-    hsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
-    hsv[:, :, 0] = ((hsv[:, :, 0].astype(np.int16) + 90) % 180).astype(np.uint8)
-    mask = cv2.inRange(hsv, lower, upper)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, KERNEL)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, KERNEL)
-    mask = cv2.medianBlur(mask, 5)
+    blur = cv2.GaussianBlur(roi, (7, 7), 0)                                           #gaussian blur
+    hsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)                                       #convert bgr to hsv
+    hsv[:, :, 0] = ((hsv[:, :, 0].astype(np.int16) + 90) % 180).astype(np.uint8)      
+    mask = cv2.inRange(hsv, lower, upper)                                             #thresholding jd hitam putih          
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, KERNEL)                             #morfologi open (hapus noise)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, KERNEL)                            #morfologi close (tutup lubang)
+    mask = cv2.medianBlur(mask, 5)                                                    #haluskan tepi kontur
 
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
@@ -97,7 +99,6 @@ def track_hand(frame, lower, upper):
 class Game:
     def __init__(self):
         self.started = False
-        self.mouse = (-1, -1)
         self.reset()
 
     def reset(self):
@@ -123,9 +124,6 @@ class Game:
         if self.started and not self.over:
             self.paused = not self.paused
 
-    def on_button(self, x, y):
-        cx, cy = GAME_W // 2, (GAME_H + TOP_BAR) // 2
-        return abs(x - cx) <= BTN_R and abs(y - cy) <= BTN_R
 
     def update(self, target_y):
         now = time.time()
@@ -214,16 +212,10 @@ class Game:
             draw_text(img, "Press P to resume", (cx, cy + 30), FONT_SMALL, (255, 255, 255), "mm")
 
         if not self.started:
-            if not self.started:
-              draw_text(img, "404 UFO", (GAME_W//2, GAME_H//2 - 20), FONT_BIG, (255, 255, 0), "mm")
-              draw_text(img, "Press SPACE to Play", (GAME_W//2, GAME_H//2 + 20), FONT_SMALL, (255, 255, 255), "mm")
+            draw_text(img, "404 UFO", (GAME_W//2, GAME_H//2 - 20), FONT_BIG, (255, 255, 0), "mm")
+            draw_text(img, "Press SPACE to Play", (GAME_W//2, GAME_H//2 + 20), FONT_SMALL, (255, 255, 255), "mm")
         return img
     
-def on_mouse(event, x, y, flags, game):
-    game.mouse = (x, y)
-    if event == cv2.EVENT_LBUTTONDOWN and not game.started and game.on_button(x, y):
-        game.started = True
-
 def main():
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
@@ -238,7 +230,7 @@ def main():
         ok, frame = cap.read()
         if not ok:
             break
-        frame = cv2.flip(cv2.resize(frame, (CAM_W, CAM_H)), 1)  #mirroring
+        frame = cv2.flip(cv2.resize(frame, (CAM_W, CAM_H)), 1)         #mirroring
 
         lower, upper = LOWER_HSV, UPPER_HSV
         cy, mask_roi, bbox = track_hand(frame, lower, upper)
@@ -247,8 +239,8 @@ def main():
         if cy is not None:
             if smooth_y is None:
                 smooth_y = cy
-            if abs(cy - smooth_y) > 2:  #deadband
-                smooth_y = 0.3 * cy + 0.7 * smooth_y #smoothing
+            if abs(cy - smooth_y) > 2:                     #deadband (abaikan pergerakan >2 px)
+                smooth_y = 0.3 * cy + 0.7 * smooth_y       #smoothing (low-pass filter)
             target = float(np.interp(smooth_y, Y_RANGE, [PLAY_TOP, PLAY_BOTTOM]))
         game.update(target)
         view = frame.copy()
