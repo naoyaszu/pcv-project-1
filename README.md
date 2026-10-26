@@ -1,9 +1,9 @@
-# 404 UFO
+## 404 UFO
 
 404 UFO adalah game arcade sederhana berbasis Python yang menggabungkan kontrol gerakan tangan melalui kamera dengan gameplay menghindari rintangan. Pemain menggerakkan pesawat luar angkasa ke atas atau ke bawah dengan mengubah posisi tangan yang terdeteksi kamera. Game ini dibuat sebagai proyek untuk mata kuliah Pengolahan Citra dan Video (PCV)
----
 
-##  Tentang Game
+
+###  Tentang Game
 
 Pemain mengendalikan posisi vertikal pesawat UFO untuk menghindari rintangan dan mengumpulkan item penambah poin serta nyawa. Gerakan pesawat dikendalikan tanpa menyentuh keyboard/mouse, melainkan murni menggunakan posisi tangan di depan kamera.
 
@@ -27,7 +27,7 @@ Pemain mengendalikan posisi vertikal pesawat UFO untuk menghindari rintangan dan
 
 ---
 
-## Teknologi
+### Teknologi
 
 - Python
 - OpenCV (`cv2`) — akses kamera dan pemrosesan citra
@@ -37,7 +37,7 @@ Pemain mengendalikan posisi vertikal pesawat UFO untuk menghindari rintangan dan
 
 ---
 
-## Fitur
+### Fitur
 
 - **Kontrol menggunakan tangan:** posisi tangan dideteksi dari warna merah pada video kamera.
 - **Pemrosesan citra real-time:** menggunakan OpenCV untuk memproses frame, membuat mask warna, dan mendeteksi kontur.
@@ -49,7 +49,7 @@ Pemain mengendalikan posisi vertikal pesawat UFO untuk menghindari rintangan dan
 
 ---
 
-## Kontrol & Navigasi
+### Kontrol & Navigasi
 
 | Aksi / Tombol | Fungsi |
 | :--- | :--- |
@@ -61,7 +61,7 @@ Pemain mengendalikan posisi vertikal pesawat UFO untuk menghindari rintangan dan
 
 ---
 
-## Struktur Direktori
+### Struktur Direktori
 
 ```text
 pcv-project-1/
@@ -79,24 +79,24 @@ pcv-project-1/
 
 ---
 
-## Instalasi & Menjalankan Program
+### Instalasi & Menjalankan Program
 
-### 1. Prasyarat
+#### 1. Prasyarat
 Pastikan komputer sudah terpasang:
 * Python 3.8 atau lebih baru
 * Kamera webcam aktif
 
-### 2. Pasang Dependensi
+#### 2. Pasang Dependensi
 Jalankan perintah berikut di terminal / command prompt:
 ```bash
 pip install opencv-python numpy pillow
 ```
 
-### 3. Jalankan Program
+#### 3. Jalankan Program
 ```bash
 python main.py
 ```
 
 ---
 
-## Dokumentasi Game
+### Dokumentasi Game
