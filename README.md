@@ -49,7 +49,7 @@ Pemain mengendalikan posisi vertikal pesawat UFO untuk menghindari rintangan dan
 
 ---
 
-## ⌨️ Kontrol & Navigasi
+## Kontrol & Navigasi
 
 | Aksi / Tombol | Fungsi |
 | :--- | :--- |
@@ -61,7 +61,7 @@ Pemain mengendalikan posisi vertikal pesawat UFO untuk menghindari rintangan dan
 
 ---
 
-## 📁 Struktur Direktori
+## Struktur Direktori
 
 ```text
 pcv-project-1/
@@ -79,7 +79,7 @@ pcv-project-1/
 
 ---
 
-## 🛠️ Instalasi & Menjalankan Program
+## Instalasi & Menjalankan Program
 
 ### 1. Prasyarat
 Pastikan komputer sudah terpasang:
