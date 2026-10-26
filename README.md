@@ -2,6 +2,7 @@
 
 404 UFO adalah game arcade sederhana berbasis Python yang menggabungkan kontrol gerakan tangan melalui kamera dengan gameplay menghindari rintangan. Pemain menggerakkan pesawat luar angkasa ke atas atau ke bawah dengan mengubah posisi tangan yang terdeteksi kamera. Game ini dibuat sebagai proyek untuk mata kuliah Pengolahan Citra dan Video (PCV)
 
+---
 
 ###  Tentang Game
 
