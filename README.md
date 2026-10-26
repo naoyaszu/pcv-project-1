@@ -109,3 +109,7 @@ python main.py
 
 3. Game Over
 ![gameover](images/game-over.png)
+
+Video Gameplay
+
+https://github.com/user-attachments/assets/44557ea2-bf6c-46ba-875d-7a458b81e7a0
